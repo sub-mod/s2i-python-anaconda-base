@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source /opt/anaconda3/bin/activate ${APP_ROOT}
+source /opt/anaconda/bin/activate ${APP_ROOT}
 
 set -e
 

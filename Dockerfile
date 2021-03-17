@@ -1,6 +1,6 @@
 # This image provides a Python 3.8 environment you can use to run your Python
 # applications.
-FROM ubi8/s2i-base
+FROM registry.access.redhat.com/ubi8/s2i-base
 
 EXPOSE 8080
 
@@ -22,9 +22,9 @@ ENV PYTHON_VERSION=3.8 \
 #    PROMPT_COMMAND=". ${APP_ROOT}/etc/scl_enable"
 
 # Ensure we're enabling Anaconda by forcing the activation script in the shell
-ENV BASH_ENV="/opt/anaconda3/bin/activate ${APP_ROOT}" \
-    ENV="/opt/anaconda3/bin/activate ${APP_ROOT}" \
-    PROMPT_COMMAND=". /opt/anaconda3/bin/activate ${APP_ROOT}"
+ENV BASH_ENV="/opt/anaconda/bin/activate ${APP_ROOT}" \
+    ENV="/opt/anaconda/bin/activate ${APP_ROOT}" \
+    PROMPT_COMMAND=". /opt/anaconda/bin/activate ${APP_ROOT}"
 
 
 
@@ -46,12 +46,13 @@ LABEL summary="$SUMMARY" \
 RUN INSTALL_PKGS="nss_wrapper \
         httpd httpd-devel mod_ssl mod_auth_gssapi mod_ldap \
         mod_session atlas-devel gcc-gfortran libffi-devel libtool-ltdl enchant" && \
-    curl https://repo.anaconda.com/archive/Anaconda3-2020.11-Linux-x86_64.sh > Anaconda3-2020.11-Linux-x86_64.sh && \
-    chmod +x Anaconda3-2020.11-Linux-x86_64.sh && \
-    ./Anaconda3-2020.11-Linux-x86_64.sh -b -p /opt/anaconda3 && \
-    rm ./Anaconda3-2020.11-Linux-x86_64.sh && \
+    curl https://repo.anaconda.com/miniconda/Miniconda3-py38_4.9.2-Linux-x86_64.sh > Miniconda3-4.9.2-Linux-x86_64.sh && \
+    chmod +x Miniconda3-4.9.2-Linux-x86_64.sh && \
+    ./Miniconda3-4.9.2-Linux-x86_64.sh -b -p /opt/anaconda && \
+    rm ./Miniconda3-4.9.2-Linux-x86_64.sh && \
     yum -y module disable python38:3.8 && \
     yum -y module enable httpd:2.4 && \
+    yum -y install git-lfs && \
     yum -y --setopt=tsflags=nodocs install $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
     # Remove redhat-logos-httpd (httpd dependency) to keep image size smaller.
@@ -72,10 +73,10 @@ COPY ./s2i/bin/ $STI_SCRIPTS_PATH
 #   writable as OpenShift default security model is to run the container
 #   under random UID.
 RUN \
-    /opt/anaconda3/bin/conda create -y --prefix ${APP_ROOT} python=${PYTHON_VERSION} && \
+    /opt/anaconda/bin/conda create -y --prefix ${APP_ROOT} python=${PYTHON_VERSION} && \
     chown -R 1001:0 ${APP_ROOT} && \
     fix-permissions ${APP_ROOT} -P && \
-    fix-permissions /opt/anaconda3 -P && \
+    fix-permissions /opt/anaconda -P && \
     rpm-file-permissions
 
 USER 1001
