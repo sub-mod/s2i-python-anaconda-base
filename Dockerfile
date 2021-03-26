@@ -2,6 +2,7 @@
 # applications.
 FROM registry.access.redhat.com/ubi8/s2i-base
 
+LABEL maintainer="Subin Modeel <smodeel@redhat.com>"
 EXPOSE 8080
 
 # TODO(Spryor): ensure these are right, add Anaconda versions
@@ -26,10 +27,24 @@ ENV BASH_ENV="/opt/anaconda/bin/activate ${APP_ROOT}" \
     ENV="/opt/anaconda/bin/activate ${APP_ROOT}" \
     PROMPT_COMMAND=". /opt/anaconda/bin/activate ${APP_ROOT}"
 
-
-
 ENV SUMMARY="" \
-    DESCRIPTION=""
+    DESCRIPTION="" \
+    USE_CUDA=0 \
+    USE_CUDNN=0 \
+    USE_TENSORRT=0 \
+    USE_FBGEMM=0 \
+    USE_MKLDNN=0 \
+    USE_NNPACK=0 \
+    USE_QNNPACK=0 \
+    USE_XNNPACK=0 \
+    USE_PYTORCH_QNNPACK=0 \
+    USE_LMDB=1 \
+    USE_LEVELDB=1 \
+    USE_OPENMP=1 \
+    USE_NINJA=0 \
+    USE_MPI=0 \
+    DEE_ENABLED=1
+
 
 LABEL summary="$SUMMARY" \
       description="$DESCRIPTION" \
@@ -41,7 +56,7 @@ LABEL summary="$SUMMARY" \
       name="ubi8/anaconda-38" \
       version="1" \
       usage="" \
-      maintainer="Probably Anaconda"
+      maintainer="Subin Modeel <smodeel@redhat.com>"
 
 RUN INSTALL_PKGS="nss_wrapper \
         httpd httpd-devel mod_ssl mod_auth_gssapi mod_ldap \
@@ -52,7 +67,8 @@ RUN INSTALL_PKGS="nss_wrapper \
     rm ./Miniconda3-4.9.2-Linux-x86_64.sh && \
     yum -y module disable python38:3.8 && \
     yum -y module enable httpd:2.4 && \
-    yum -y install git-lfs && \
+    yum -y install git-lfs unzip vim wget git tar sudo tree mlocate gdb gcc-c++ make && \
+    yum -y install curl-devel gettext-devel openssl-devel zlib-devel && \
     yum -y --setopt=tsflags=nodocs install $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
     # Remove redhat-logos-httpd (httpd dependency) to keep image size smaller.
@@ -62,10 +78,6 @@ RUN INSTALL_PKGS="nss_wrapper \
 # Copy the S2I scripts from the specific language image to $STI_SCRIPTS_PATH.
 COPY ./s2i/bin/ $STI_SCRIPTS_PATH
 
-# TODO(Spryor): What extra files exactly...?
-# Copy extra files to the image.
-# COPY ./root/ /
-
 # - Create a Python virtual environment for use by any application to avoid
 #   potential conflicts with Python packages preinstalled in the main Python
 #   installation.
@@ -74,6 +86,9 @@ COPY ./s2i/bin/ $STI_SCRIPTS_PATH
 #   under random UID.
 RUN \
     /opt/anaconda/bin/conda create -y --prefix ${APP_ROOT} python=${PYTHON_VERSION} && \
+    source /opt/anaconda/bin/activate ${APP_ROOT} && /opt/anaconda/condabin/conda update -n base -c defaults conda -y && \
+    /opt/anaconda/condabin/conda install numpy ninja pyyaml mkl mkl-include setuptools cmake cffi typing_extensions future six requests dataclasses ca-certificates certifi -y && \
+    /opt/anaconda/condabin/conda install -c conda-forge/label/cf202003 lark-parser -y && \
     chown -R 1001:0 ${APP_ROOT} && \
     fix-permissions ${APP_ROOT} -P && \
     fix-permissions /opt/anaconda -P && \
